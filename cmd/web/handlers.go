@@ -8,7 +8,8 @@ import (
 	"strconv"
 )
 
-var HTML_PATH = "./ui/html/pages/"
+var HTML_PATH = "./ui/html/"
+var HTML_PATH_PAGES = HTML_PATH + "pages/"
 
 func home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -17,19 +18,23 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Cache-Control", "max-age=31536000")
 	w.Header().Add("Cache-Control", "public")
-	ts, err := template.ParseFiles(HTML_PATH + "home.html")
+	//ordering matters here
+	templates := []string{
+		HTML_PATH + "base.html",
+		HTML_PATH + "partials/nav.html",
+		HTML_PATH_PAGES + "home.html",
+	}
+	templateSet, err := template.ParseFiles(templates...)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", 500)
 		return
 	}
-	err = ts.Execute(w, nil)
+	err = templateSet.ExecuteTemplate(w, "base", nil)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", 500)
 	}
-
-	//w.Write([]byte("Hello from Snippetbox!"))
 }
 
 func snippetView(w http.ResponseWriter, r *http.Request) {
@@ -48,5 +53,9 @@ func snippetCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(200) //wouldnt need to do this since its default to return 200
+	w.Write([]byte("SnippetCreate func2"))
+}
+
+func serveStatic(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("SnippetCreate func2"))
 }
