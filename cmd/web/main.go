@@ -1,19 +1,46 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
+	"os"
 )
 
+type Application struct {
+	errorLog *log.Logger
+	infoLog  *log.Logger
+}
+
+type Config struct {
+	addr      string
+	staticDir string
+}
+
+func setupConfig() *Config {
+	var cfg Config
+	flag.StringVar(&cfg.addr, "addr", "localhost:4000", "HTTP port")
+	flag.StringVar(&cfg.staticDir, "dir", "./ui/static/", "Directory for serving static files")
+	return &cfg
+}
+
 func main() {
-	mux := http.NewServeMux()
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("/static/", http.StripPrefix("/static/", fileServer))
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet/view", snippetView)
-	mux.HandleFunc("/snippet/create", snippetCreate)
-	log.Println("Starting server on :4000")
-	err := http.ListenAndServe("localhost:4000", mux)
-	log.Fatal(err)
+	config := setupConfig()
+	flag.Parse()
+
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	app := &Application{
+		infoLog:  infoLog,
+		errorLog: errorLog,
+	}
+
+	infoLog.Printf("Starting server on %s\n", config.addr)
+	server := &http.Server{
+		Addr:     config.addr,
+		Handler:  app.initializeRoutes(config),
+		ErrorLog: errorLog}
+	err := server.ListenAndServe()
+	errorLog.Fatal(err)
 
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -11,9 +10,9 @@ import (
 var HTML_PATH = "./ui/html/"
 var HTML_PATH_PAGES = HTML_PATH + "pages/"
 
-func home(w http.ResponseWriter, r *http.Request) {
+func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		app.notFound(w)
 		return
 	}
 	w.Header().Add("Cache-Control", "max-age=31536000")
@@ -26,36 +25,31 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 	templateSet, err := template.ParseFiles(templates...)
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Internal Server Error", 500)
+		app.serveError(w, err)
 		return
 	}
 	err = templateSet.ExecuteTemplate(w, "base", nil)
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Internal Server Error", 500)
+		app.serveError(w, err)
+		return
 	}
 }
 
-func snippetView(w http.ResponseWriter, r *http.Request) {
+func (app *Application) snippetView(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || id < 0 {
-		http.NotFound(w, r)
+		app.notFound(w)
 		return
 	}
 	fmt.Fprintf(w, "SnippetView func with ID '%d'.", id)
 }
 
-func snippetCreate(w http.ResponseWriter, r *http.Request) {
+func (app *Application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST") //has to come before WriteHeader
-		http.Error(w, "HTTP-Method not allowed!", http.StatusMethodNotAllowed)
+		app.clientError(w, http.StatusMethodNotAllowed)
 		return
 	}
 	w.WriteHeader(200) //wouldnt need to do this since its default to return 200
-	w.Write([]byte("SnippetCreate func2"))
-}
-
-func serveStatic(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("SnippetCreate func2"))
 }
