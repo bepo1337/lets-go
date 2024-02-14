@@ -1,2 +1,2 @@
-github.com/slayer/autorestart v0.0.0-20170706172547-5ebd91f955ae h1:hnJJroq/kooxO2jUKDc8KXxj8tilWvOlD0hzDDv05ss=
-github.com/slayer/autorestart v0.0.0-20170706172547-5ebd91f955ae/go.mod h1:p+QQKBy7tS+myk+y3sgnAKx4gUtD/Q9Z6KEd77cLzWY=
+github.com/go-sql-driver/mysql v1.7.1 h1:lUIinVbN1DY0xBg0eMOzmmtGoHwWBbvnWubQUrtU8EI=
+github.com/go-sql-driver/mysql v1.7.1/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=

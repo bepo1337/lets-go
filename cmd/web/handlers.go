@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
+	"io"
+	"letsgo.bepo1337/internal/models"
 	"net/http"
 	"strconv"
 )
@@ -41,7 +45,17 @@ func (app *Application) snippetView(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
-	fmt.Fprintf(w, "SnippetView func with ID '%d'.", id)
+	snippet, err := app.snippetModel.Get(id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.notFound(w)
+		} else {
+			app.serveError(w, err)
+		}
+		return
+	}
+	snippetJson, _ := json.Marshal(snippet)
+	fmt.Fprintf(w, string(snippetJson))
 }
 
 func (app *Application) snippetCreate(w http.ResponseWriter, r *http.Request) {
@@ -50,6 +64,22 @@ func (app *Application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 		app.clientError(w, http.StatusMethodNotAllowed)
 		return
 	}
-	w.WriteHeader(200) //wouldnt need to do this since its default to return 200
-	w.Write([]byte("SnippetCreate func2"))
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		app.serveError(w, err)
+		return
+	}
+	var result map[string]string
+	json.Unmarshal(bodyBytes, &result)
+	expiresAsInt, err := strconv.Atoi(result["expires"])
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+	id, err := app.snippetModel.Insert(result["title"], result["content"], expiresAsInt)
+	if err != nil {
+		app.serveError(w, err)
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/snippet/view?id=%d", id), http.StatusSeeOther)
 }
