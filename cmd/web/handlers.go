@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"letsgo.bepo1337/internal/models"
 	"net/http"
@@ -21,22 +20,30 @@ func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Cache-Control", "max-age=31536000")
 	w.Header().Add("Cache-Control", "public")
+	snippets, err := app.snippetModel.LatestTen()
+	if err != nil {
+		app.serveError(w, err)
+		return
+	}
+	for _, snippet := range snippets {
+		fmt.Fprintf(w, "%+v\n", snippet)
+	}
 	//ordering matters here
-	templates := []string{
-		HTML_PATH + "base.html",
-		HTML_PATH + "partials/nav.html",
-		HTML_PATH_PAGES + "home.html",
-	}
-	templateSet, err := template.ParseFiles(templates...)
-	if err != nil {
-		app.serveError(w, err)
-		return
-	}
-	err = templateSet.ExecuteTemplate(w, "base", nil)
-	if err != nil {
-		app.serveError(w, err)
-		return
-	}
+	//templates := []string{
+	//	HTML_PATH + "base.html",
+	//	HTML_PATH + "partials/nav.html",
+	//	HTML_PATH_PAGES + "home.html",
+	//}
+	//templateSet, err := template.ParseFiles(templates...)
+	//if err != nil {
+	//	app.serveError(w, err)
+	//	return
+	//}
+	//err = templateSet.ExecuteTemplate(w, "base", nil)
+	//if err != nil {
+	//	app.serveError(w, err)
+	//	return
+	//}
 }
 
 func (app *Application) snippetView(w http.ResponseWriter, r *http.Request) {
