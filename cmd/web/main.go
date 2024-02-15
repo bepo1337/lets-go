@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	_ "github.com/go-sql-driver/mysql"
+	"html/template"
 	"letsgo.bepo1337/internal/models"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ type Application struct {
 	errorLog     *log.Logger
 	infoLog      *log.Logger
 	snippetModel *models.SnippetModel
+	templates    map[string]*template.Template
 }
 
 type Config struct {
@@ -40,11 +42,15 @@ func main() {
 		errorLog.Fatal(err)
 	}
 	defer db.Close()
-
+	templates, err := newTemplateCache()
+	if err != nil {
+		errorLog.Fatal(err)
+	}
 	app := &Application{
 		infoLog:      infoLog,
 		errorLog:     errorLog,
 		snippetModel: &models.SnippetModel{DB: db},
+		templates:    templates,
 	}
 
 	infoLog.Printf("Starting server on %s\n", config.addr)

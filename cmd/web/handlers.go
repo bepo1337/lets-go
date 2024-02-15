@@ -4,15 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"letsgo.bepo1337/internal/models"
 	"net/http"
 	"strconv"
 )
 
-var HTML_PATH = "./ui/html/"
-var HTML_PATH_PAGES = HTML_PATH + "pages/"
+const HTML_PATH = "./ui/html/"
+const HTML_PATH_PAGES = HTML_PATH + "pages/"
 
 func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -26,23 +25,10 @@ func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 		app.serveError(w, err)
 		return
 	}
-	//ordering matters here
-	templates := []string{
-		HTML_PATH + "base.html",
-		HTML_PATH + "partials/nav.html",
-		HTML_PATH_PAGES + "home.html",
-	}
-	templateSet, err := template.ParseFiles(templates...)
-	if err != nil {
-		app.serveError(w, err)
-		return
-	}
-	templateData := &HomeTemplateData{Snippets: snippets}
-	err = templateSet.ExecuteTemplate(w, "base", templateData)
-	if err != nil {
-		app.serveError(w, err)
-		return
-	}
+	templateData := app.newTemplateData(r)
+	templateData.Snippets = snippets
+
+	app.render(w, http.StatusOK, "home.html", templateData)
 }
 
 func (app *Application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -60,22 +46,11 @@ func (app *Application) snippetView(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	templates := []string{
-		HTML_PATH + "base.html",
-		HTML_PATH + "partials/nav.html",
-		HTML_PATH_PAGES + "view.html",
-	}
-	templateSet, err := template.ParseFiles(templates...)
-	if err != nil {
-		app.serveError(w, err)
-		return
-	}
-	templateData := &ViewTemplateData{snippet}
-	err = templateSet.ExecuteTemplate(w, "base", templateData)
-	if err != nil {
-		app.serveError(w, err)
-		return
-	}
+
+	templateData := app.newTemplateData(r)
+	templateData.Snippet = snippet
+	app.render(w, http.StatusOK, "view.html", templateData)
+
 }
 
 func (app *Application) snippetCreate(w http.ResponseWriter, r *http.Request) {
