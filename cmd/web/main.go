@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
 	"html/template"
 	"letsgo.bepo1337/internal/models"
@@ -16,6 +17,7 @@ type Application struct {
 	infoLog      *log.Logger
 	snippetModel *models.SnippetModel
 	templates    map[string]*template.Template
+	formDecoder  *form.Decoder
 }
 
 type Config struct {
@@ -51,6 +53,7 @@ func main() {
 		errorLog:     errorLog,
 		snippetModel: &models.SnippetModel{DB: db},
 		templates:    templates,
+		formDecoder:  &form.Decoder{},
 	}
 
 	infoLog.Printf("Starting server on %s\n", config.addr)
