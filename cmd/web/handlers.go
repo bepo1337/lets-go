@@ -1,18 +1,19 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
-	"io"
 	"letsgo.bepo1337/internal/models"
+	"letsgo.bepo1337/internal/validator"
 	"net/http"
 	"strconv"
 )
 
 const HTML_PATH = "./ui/html/"
 const HTML_PATH_PAGES = HTML_PATH + "pages/"
+
+var permittedExpireValues = [3]int{1, 7, 365}
 
 func (app *Application) home(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.Header().Add("Cache-Control", "max-age=31536000")
@@ -51,26 +52,57 @@ func (app *Application) snippetView(w http.ResponseWriter, r *http.Request, para
 }
 
 func (app *Application) snippetCreateGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	w.Write([]byte("Form data here..."))
+	templateData := app.newTemplateData(r)
+	templateData.Form = snippetCreateForm{
+		Expires: 365,
+	}
+	app.render(w, http.StatusOK, "create.html", templateData)
 }
 
 func (app *Application) snippetCreatePost(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	bodyBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		app.serveError(w, err)
-		return
-	}
-	var result map[string]string
-	json.Unmarshal(bodyBytes, &result)
-	expiresAsInt, err := strconv.Atoi(result["expires"])
+	err := r.ParseForm()
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
-	id, err := app.snippetModel.Insert(result["title"], result["content"], expiresAsInt)
+	postForm := r.PostForm
+	expiresAsInt, err := strconv.Atoi(postForm.Get("expires"))
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+	form := snippetCreateForm{
+		Title:   postForm.Get("title"),
+		Content: postForm.Get("content"),
+		Expires: expiresAsInt,
+	}
+
+	form.CheckField(validator.NotBlank(form.Title), "title", "Title cant be blank")
+	form.CheckField(validator.WithinMaxChars(form.Title, 100),
+		"title",
+		"Title cant be greater than 100 characters")
+	form.CheckField(validator.NotBlank(form.Content), "content", "Content cant be blank")
+	form.CheckField(validator.PermittedInt(form.Expires, 1, 7, 365),
+		"expires",
+		"Expires not in permitted set")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, http.StatusUnprocessableEntity, "create.html", data)
+		return
+	}
+	id, err := app.snippetModel.Insert(form.Title, form.Content, form.Expires)
 	if err != nil {
 		app.serveError(w, err)
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
+}
+
+type snippetCreateForm struct {
+	Title   string
+	Content string
+	Expires int
+	validator.Validator
 }
