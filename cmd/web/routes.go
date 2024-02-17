@@ -14,10 +14,12 @@ func (app *Application) initializeRoutes(config *Config) http.Handler {
 
 	fileServer := http.FileServer(http.Dir(config.staticDir))
 	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static/", fileServer))
-	router.GET("/", app.home)
-	router.GET("/snippet/view/:id", app.snippetView)
-	router.GET("/snippet/create", app.snippetCreateGet)
-	router.POST("/snippet/create", app.snippetCreatePost)
+
+	dynamic := alice.New(app.sessionManager.LoadAndSave)
+	router.Handler(http.MethodGet, "/", dynamic.ThenFunc(app.home))
+	router.Handler(http.MethodGet, "/snippet/view/:id", dynamic.ThenFunc(app.snippetView))
+	router.Handler(http.MethodGet, "/snippet/create", dynamic.ThenFunc(app.snippetCreateGet))
+	router.Handler(http.MethodPost, "/snippet/create", dynamic.ThenFunc(app.snippetCreatePost))
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest, secureHeader)
 	return standardMiddleware.Then(router)
 }

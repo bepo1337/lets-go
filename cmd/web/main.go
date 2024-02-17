@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"github.com/alexedwards/scs/mysqlstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
 	"html/template"
@@ -10,14 +12,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 type Application struct {
-	errorLog     *log.Logger
-	infoLog      *log.Logger
-	snippetModel *models.SnippetModel
-	templates    map[string]*template.Template
-	formDecoder  *form.Decoder
+	errorLog       *log.Logger
+	infoLog        *log.Logger
+	snippetModel   *models.SnippetModel
+	templates      map[string]*template.Template
+	formDecoder    *form.Decoder
+	sessionManager *scs.SessionManager
 }
 
 type Config struct {
@@ -48,12 +52,17 @@ func main() {
 	if err != nil {
 		errorLog.Fatal(err)
 	}
+	sessionManager := scs.New() //sets default values and calls constructor
+	sessionManager.Store = mysqlstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+
 	app := &Application{
-		infoLog:      infoLog,
-		errorLog:     errorLog,
-		snippetModel: &models.SnippetModel{DB: db},
-		templates:    templates,
-		formDecoder:  form.NewDecoder(),
+		infoLog:        infoLog,
+		errorLog:       errorLog,
+		snippetModel:   &models.SnippetModel{DB: db},
+		templates:      templates,
+		formDecoder:    form.NewDecoder(),
+		sessionManager: sessionManager,
 	}
 
 	infoLog.Printf("Starting server on %s\n", config.addr)

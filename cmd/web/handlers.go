@@ -15,7 +15,7 @@ const HTML_PATH_PAGES = HTML_PATH + "pages/"
 
 var permittedExpireValues = [3]int{1, 7, 365}
 
-func (app *Application) home(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "max-age=31536000")
 	w.Header().Add("Cache-Control", "public")
 	snippets, err := app.snippetModel.LatestTen()
@@ -29,7 +29,8 @@ func (app *Application) home(w http.ResponseWriter, r *http.Request, _ httproute
 	app.render(w, http.StatusOK, "home.html", templateData)
 }
 
-func (app *Application) snippetView(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (app *Application) snippetView(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil || id < 0 {
 		app.notFound(w)
@@ -44,14 +45,18 @@ func (app *Application) snippetView(w http.ResponseWriter, r *http.Request, para
 		}
 		return
 	}
+	//Get data from session store
+	toastValue := app.sessionManager.PopString(r.Context(), "toast")
 
 	templateData := app.newTemplateData(r)
 	templateData.Snippet = snippet
+	templateData.Toast = toastValue
+
 	app.render(w, http.StatusOK, "view.html", templateData)
 
 }
 
-func (app *Application) snippetCreateGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (app *Application) snippetCreateGet(w http.ResponseWriter, r *http.Request) {
 	templateData := app.newTemplateData(r)
 	templateData.Form = snippetCreateForm{
 		Expires: 365,
@@ -59,7 +64,7 @@ func (app *Application) snippetCreateGet(w http.ResponseWriter, r *http.Request,
 	app.render(w, http.StatusOK, "create.html", templateData)
 }
 
-func (app *Application) snippetCreatePost(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (app *Application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
 	var form snippetCreateForm
 	err := app.decodePostForm(r, &form)
 	if err != nil {
@@ -87,6 +92,7 @@ func (app *Application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		app.serveError(w, err)
 		return
 	}
+	app.sessionManager.Put(r.Context(), "toast", "Snippet successfully created!")
 	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }
 
