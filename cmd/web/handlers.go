@@ -91,8 +91,8 @@ func (app *Application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 }
 
 type snippetCreateForm struct {
-	Title               string      `form: "title"`
-	Content             string      `form: "content"`
-	Expires             int         `form: "expires"`
-	validator.Validator `form: "-"` //decoder ignores this field
+	Title               string     `form:"title"`
+	Content             string     `form:"content"`
+	Expires             int        `form:"expires"`
+	validator.Validator `form:"-"` //decoder ignores this field
 }

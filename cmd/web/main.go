@@ -53,7 +53,7 @@ func main() {
 		errorLog:     errorLog,
 		snippetModel: &models.SnippetModel{DB: db},
 		templates:    templates,
-		formDecoder:  &form.Decoder{},
+		formDecoder:  form.NewDecoder(),
 	}
 
 	infoLog.Printf("Starting server on %s\n", config.addr)
