@@ -40,7 +40,10 @@ func newTemplateCache() (map[string]*template.Template, error) {
 }
 
 func (app *Application) newTemplateData(r *http.Request) *TemplateData {
-	return &TemplateData{CurrentYear: time.Now().Year()}
+	return &TemplateData{
+		CurrentYear: time.Now().Year(),
+		Toast:       app.sessionManager.PopString(r.Context(), "toast"),
+	}
 }
 
 func humanDate(t time.Time) string {

@@ -45,12 +45,9 @@ func (app *Application) snippetView(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	//Get data from session store
-	toastValue := app.sessionManager.PopString(r.Context(), "toast")
 
 	templateData := app.newTemplateData(r)
 	templateData.Snippet = snippet
-	templateData.Toast = toastValue
 
 	app.render(w, http.StatusOK, "view.html", templateData)
 

@@ -55,6 +55,7 @@ func main() {
 	sessionManager := scs.New() //sets default values and calls constructor
 	sessionManager.Store = mysqlstore.New(db)
 	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Cookie.Secure = true
 
 	app := &Application{
 		infoLog:        infoLog,
@@ -70,7 +71,7 @@ func main() {
 		Addr:     config.addr,
 		Handler:  app.initializeRoutes(config),
 		ErrorLog: errorLog}
-	err = server.ListenAndServe()
+	err = server.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 	errorLog.Fatal(err)
 
 }
