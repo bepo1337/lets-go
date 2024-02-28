@@ -6,11 +6,12 @@ import (
 )
 
 type Validator struct {
-	FieldErrors map[string]string
+	FieldErrors    map[string]string
+	NonFieldErrors []string
 }
 
 func (v *Validator) Valid() bool {
-	return len(v.FieldErrors) == 0
+	return len(v.FieldErrors) == 0 && len(v.NonFieldErrors) == 0
 }
 
 func (v *Validator) AddFieldError(field, message string) {
@@ -44,4 +45,15 @@ func PermittedInt(value int, permitted ...int) bool {
 		}
 	}
 	return false
+}
+
+func MinChars(value string, minLength int) bool {
+	if utf8.RuneCountInString(value) >= minLength {
+		return true
+	}
+	return false
+}
+
+func (v *Validator) AddNonFieldError(message string) {
+	v.NonFieldErrors = append(v.NonFieldErrors, message)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/justinas/nosurf"
 	"net/http"
 )
 
@@ -25,6 +26,18 @@ func (app *Application) logRequest(next http.Handler) http.Handler {
 	})
 }
 
+func (app *Application) checkAuthentication(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if app.isAuthenticated(r) {
+			w.Header().Add("Cache-Control", "no-store")
+			next.ServeHTTP(w, r)
+		} else {
+			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+			return
+		}
+	})
+}
+
 func (app *Application) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -36,4 +49,14 @@ func (app *Application) recoverPanic(next http.Handler) http.Handler {
 		}()
 		next.ServeHTTP(w, r)
 	})
+}
+
+func noSurf(next http.Handler) http.Handler {
+	csrfHandler := nosurf.New(next)
+	csrfHandler.SetBaseCookie(http.Cookie{
+		HttpOnly: true,
+		Path:     "/",
+		Secure:   true,
+	})
+	return csrfHandler
 }

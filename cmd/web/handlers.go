@@ -10,8 +10,11 @@ import (
 	"strconv"
 )
 
-const HTML_PATH = "./ui/html/"
-const HTML_PATH_PAGES = HTML_PATH + "pages/"
+const (
+	HTML_PATH           = "./ui/html/"
+	HTML_PATH_PAGES     = HTML_PATH + "pages/"
+	authenticatedUserId = "authenticateUserID"
+)
 
 var permittedExpireValues = [3]int{1, 7, 365}
 
@@ -26,7 +29,7 @@ func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 	templateData := app.newTemplateData(r)
 	templateData.Snippets = snippets
 
-	app.render(w, http.StatusOK, "home.html", templateData)
+	app.render(w, http.StatusOK, "home.gohtml", templateData)
 }
 
 func (app *Application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +52,7 @@ func (app *Application) snippetView(w http.ResponseWriter, r *http.Request) {
 	templateData := app.newTemplateData(r)
 	templateData.Snippet = snippet
 
-	app.render(w, http.StatusOK, "view.html", templateData)
+	app.render(w, http.StatusOK, "view.gohtml", templateData)
 
 }
 
@@ -58,7 +61,7 @@ func (app *Application) snippetCreateGet(w http.ResponseWriter, r *http.Request)
 	templateData.Form = snippetCreateForm{
 		Expires: 365,
 	}
-	app.render(w, http.StatusOK, "create.html", templateData)
+	app.render(w, http.StatusOK, "create.gohtml", templateData)
 }
 
 func (app *Application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +84,7 @@ func (app *Application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 	if !form.Valid() {
 		data := app.newTemplateData(r)
 		data.Form = form
-		app.render(w, http.StatusUnprocessableEntity, "create.html", data)
+		app.render(w, http.StatusUnprocessableEntity, "create.gohtml", data)
 		return
 	}
 	id, err := app.snippetModel.Insert(form.Title, form.Content, form.Expires)
@@ -98,4 +101,119 @@ type snippetCreateForm struct {
 	Content             string     `form:"content"`
 	Expires             int        `form:"expires"`
 	validator.Validator `form:"-"` //decoder ignores this field
+}
+
+type userRegisterForm struct {
+	Name                string `form:"name"`
+	Email               string `form:"email"`
+	Password            string `form:"password"`
+	validator.Validator `form:"-"`
+}
+
+func (app *Application) signupUserPost(w http.ResponseWriter, r *http.Request) {
+	// Decode
+	var userForm userRegisterForm
+	err := app.decodePostForm(r, &userForm)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	//Validate
+	userForm.CheckField(validator.NotBlank(userForm.Name), "name", "Name cannot be empty!")
+	userForm.CheckField(validator.NotBlank(userForm.Email), "email", "E-Mail cannot be empty!")
+	userForm.CheckField(validator.NotBlank(userForm.Password), "password", "Password cannot be empty!")
+	userForm.CheckField(validator.MinChars(userForm.Password, 2), "password", "Passwords needs to be longer than 1 char!")
+
+	if !userForm.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = userForm
+		app.render(w, http.StatusUnprocessableEntity, "signup.gohtml", data)
+		return
+	}
+	err = app.userModel.Insert(userForm.Name, userForm.Email, userForm.Password)
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateEmail) {
+			userForm.AddFieldError("email", "E-Mail already in use")
+			data := app.newTemplateData(r)
+			data.Form = userForm
+			app.render(w, http.StatusUnprocessableEntity, "signup.gohtml", data)
+			return
+		} else {
+			app.serveError(w, err)
+			return
+		}
+	}
+	app.sessionManager.Put(r.Context(), "toast", "User successfully created!")
+	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+}
+
+func (app *Application) signupUserForm(w http.ResponseWriter, r *http.Request) {
+	templateData := app.newTemplateData(r)
+	templateData.Form = &userRegisterForm{}
+	app.render(w, http.StatusOK, "signup.gohtml", templateData)
+}
+
+type loginUserForm struct {
+	Email    string `form:"email"`
+	Password string `form:"password"`
+	validator.Validator
+}
+
+func (app *Application) loginUserPost(w http.ResponseWriter, r *http.Request) {
+	//Decode
+	var form = &loginUserForm{}
+	err := app.decodePostForm(r, form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+	//Validate
+	form.Validator.CheckField(validator.NotBlank(form.Email), "email", "E-Mail cant be blank")
+	form.Validator.CheckField(validator.NotBlank(form.Password), "password", "Password cant be blank")
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, http.StatusUnprocessableEntity, "login.gohtml", data)
+		return
+	}
+	//Authenticate
+	id, err := app.userModel.Authenticate(form.Email, form.Password)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			form.AddNonFieldError("E-Mail/Password combination wrong or doesnt exist")
+			data := app.newTemplateData(r)
+			data.Form = form
+			app.render(w, http.StatusUnauthorized, "login.gohtml", data)
+		} else {
+			app.serveError(w, err)
+		}
+		return
+	}
+	err = app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serveError(w, err)
+		return
+	}
+	app.sessionManager.Put(r.Context(), "toast", "Login successful")
+	app.sessionManager.Put(r.Context(), authenticatedUserId, id)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (app *Application) loginUserForm(w http.ResponseWriter, r *http.Request) {
+	templateData := app.newTemplateData(r)
+	templateData.Form = &userRegisterForm{}
+	app.render(w, http.StatusOK, "login.gohtml", templateData)
+}
+
+func (app *Application) logoutUserPost(w http.ResponseWriter, r *http.Request) {
+	err := app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serveError(w, err)
+		return
+	}
+	app.sessionManager.Remove(r.Context(), authenticatedUserId)
+	app.sessionManager.Put(r.Context(), "toast", "Logged out successfully")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
 }

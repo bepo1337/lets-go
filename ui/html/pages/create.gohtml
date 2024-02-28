@@ -9,6 +9,7 @@
         {{end}}
         <input type="text" name="title" value="{{.Form.Title}}">
     </div>
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <div>
         <label>Content</label>
         {{with .Form.FieldErrors.content}}

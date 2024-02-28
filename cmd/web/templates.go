@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/justinas/nosurf"
 	"html/template"
 	"letsgo.bepo1337/internal/models"
 	"net/http"
@@ -9,26 +10,28 @@ import (
 )
 
 type TemplateData struct {
-	Snippet     *models.Snippet
-	Snippets    []*models.Snippet
-	CurrentYear int
-	Form        any
-	Toast       string
+	IsAuthenticated bool
+	Snippet         *models.Snippet
+	Snippets        []*models.Snippet
+	CurrentYear     int
+	Form            any
+	Toast           string
+	CSRFToken       string
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
-	pages, err := filepath.Glob(HTML_PATH + "pages/*.html")
+	pages, err := filepath.Glob(HTML_PATH + "pages/*.gohtml")
 	if err != nil {
 		return nil, err
 	}
 	for _, page := range pages {
 		name := filepath.Base(page)
-		templateSet, err := template.New(name).Funcs(functions).ParseFiles(HTML_PATH + "base.html")
+		templateSet, err := template.New(name).Funcs(functions).ParseFiles(HTML_PATH + "base.gohtml")
 		if err != nil {
 			return nil, err
 		}
-		templateSet, err = templateSet.ParseGlob(HTML_PATH + "partials/*.html")
+		templateSet, err = templateSet.ParseGlob(HTML_PATH + "partials/*.gohtml")
 
 		templateSet, err = templateSet.ParseFiles(page)
 		if err != nil {
@@ -41,8 +44,10 @@ func newTemplateCache() (map[string]*template.Template, error) {
 
 func (app *Application) newTemplateData(r *http.Request) *TemplateData {
 	return &TemplateData{
-		CurrentYear: time.Now().Year(),
-		Toast:       app.sessionManager.PopString(r.Context(), "toast"),
+		IsAuthenticated: app.isAuthenticated(r),
+		CurrentYear:     time.Now().Year(),
+		Toast:           app.sessionManager.PopString(r.Context(), "toast"),
+		CSRFToken:       nosurf.Token(r),
 	}
 }
 

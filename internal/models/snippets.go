@@ -22,9 +22,6 @@ func (model *SnippetModel) Insert(title, content string, expires int) (int, erro
 
 	queryString := `INSERT INTO snippets (title, content, created, expires)
 	VALUES (?, ?, UTC_TIMESTAMP(), DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY ))`
-	//	queryString := `INSERT INTO snippets (title, content, created, expires)
-	//VALUES (?, ?, UTC_TIMESTAMP(), ?)`
-	//	dateAddString := internal.DateAddString(expires, internal.DAY)
 	result, err := model.DB.Exec(queryString, title, content, expires)
 	if err != nil {
 		return -1, err

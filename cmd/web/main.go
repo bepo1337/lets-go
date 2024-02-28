@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"github.com/alexedwards/scs/mysqlstore"
@@ -15,10 +16,15 @@ import (
 	"time"
 )
 
+const (
+	Cost = 10
+)
+
 type Application struct {
 	errorLog       *log.Logger
 	infoLog        *log.Logger
 	snippetModel   *models.SnippetModel
+	userModel      *models.UserModel
 	templates      map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
@@ -61,16 +67,25 @@ func main() {
 		infoLog:        infoLog,
 		errorLog:       errorLog,
 		snippetModel:   &models.SnippetModel{DB: db},
+		userModel:      &models.UserModel{DB: db},
 		templates:      templates,
 		formDecoder:    form.NewDecoder(),
 		sessionManager: sessionManager,
 	}
 
-	infoLog.Printf("Starting server on %s\n", config.addr)
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
 	server := &http.Server{
-		Addr:     config.addr,
-		Handler:  app.initializeRoutes(config),
-		ErrorLog: errorLog}
+		Addr:         config.addr,
+		Handler:      app.initializeRoutes(config),
+		ErrorLog:     errorLog,
+		TLSConfig:    tlsConfig,
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+	infoLog.Printf("Starting server on %s\n", config.addr)
 	err = server.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 	errorLog.Fatal(err)
 
