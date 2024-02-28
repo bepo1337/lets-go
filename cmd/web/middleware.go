@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/justinas/nosurf"
 	"net/http"
@@ -59,4 +62,30 @@ func noSurf(next http.Handler) http.Handler {
 		Secure:   true,
 	})
 	return csrfHandler
+}
+
+func (app *Application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		userSessionId := app.sessionManager.GetInt(r.Context(), authenticatedUserId)
+		if userSessionId == 0 {
+			next.ServeHTTP(writer, r)
+			return
+		}
+		exists, err := app.userModel.Exists(userSessionId)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				app.infoLog.Printf("Didnt find user with sessionId %d in db", userSessionId)
+				next.ServeHTTP(writer, r)
+				return
+			}
+			app.serveError(writer, err)
+			return
+		}
+		if exists {
+			ctx := context.WithValue(r.Context(), isAuthenticatedContextKey, true)
+			r = r.WithContext(ctx)
+			next.ServeHTTP(writer, r)
+		}
+
+	})
 }

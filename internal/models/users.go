@@ -48,13 +48,12 @@ func (u *UserModel) Insert(name, email, password string) error {
 func (u *UserModel) Exists(id int) (bool, error) {
 	dbStatement := `SELECT id FROM users WHERE id=?`
 	row := u.DB.QueryRow(dbStatement, id)
-	err := row.Scan()
+	var test int
+	err := row.Scan(&test)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, err
-		}
 		return false, err
 	}
+
 	return true, nil
 }
 
