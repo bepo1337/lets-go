@@ -10,6 +10,7 @@
             {{if not .IsAuthenticated}}<a href="/user/signup">Signup</a>{{end}}
             {{if not .IsAuthenticated}}<a href="/user/login">Login</a>{{end}}
             {{if .IsAuthenticated}}
+                <a href="/account/view">Account</a>
                 <form action="/user/logout" method="POST">
                     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
                     <button>Logout</button>

@@ -14,17 +14,18 @@ const (
 )
 
 type User struct {
-	id       int
-	name     string
-	email    string
-	hashedPw []byte
-	created  time.Time
+	Id       int
+	Name     string
+	Email    string
+	HashedPw []byte
+	Created  time.Time
 }
 
 type UserModelInterface interface {
 	Insert(name, email, password string) error
 	Exists(id int) (bool, error)
 	Authenticate(email, password string) (int, error)
+	Get(id int) (*User, error)
 }
 
 type UserModel struct {
@@ -67,16 +68,31 @@ func (u *UserModel) Authenticate(email, password string) (int, error) {
 	dbStatement := "SELECT id, hashed_pw  FROM users where email=?"
 	var user = &User{}
 	row := u.DB.QueryRow(dbStatement, email)
-	err := row.Scan(&user.id, &user.hashedPw)
+	err := row.Scan(&user.Id, &user.HashedPw)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return -1, ErrInvalidCredentials
 		}
 		return -1, err
 	}
-	err = bcrypt.CompareHashAndPassword(user.hashedPw, []byte(password))
+	err = bcrypt.CompareHashAndPassword(user.HashedPw, []byte(password))
 	if err != nil {
 		return -1, err
 	}
-	return user.id, nil
+	return user.Id, nil
+}
+
+func (u *UserModel) Get(id int) (*User, error) {
+	dbStatement := "SELECT id, email, created, name  FROM users where id=?"
+	var user = &User{}
+	row := u.DB.QueryRow(dbStatement, id)
+	err := row.Scan(&user.Id, &user.Email, &user.Created, &user.Name)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNoRecord
+		} else {
+			return nil, err
+		}
+	}
+	return user, nil
 }

@@ -19,6 +19,7 @@ type TemplateData struct {
 	Form            any
 	Toast           string
 	CSRFToken       string
+	User            *models.User
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
@@ -49,6 +50,7 @@ func (app *Application) newTemplateData(r *http.Request) *TemplateData {
 		CurrentYear:     time.Now().Year(),
 		Toast:           app.sessionManager.PopString(r.Context(), "toast"),
 		CSRFToken:       nosurf.Token(r),
+		//AccountData:     map[string]string{},
 	}
 }
 
