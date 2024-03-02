@@ -49,3 +49,20 @@ func TestSnippetView(t *testing.T) {
 		}
 	}
 }
+
+func TestSnippetCreate(t *testing.T) {
+	app := newTestApplication(t)
+	ts := newTestServer(t, app.initializeRoutes())
+	defer ts.Close()
+
+	t.Run("Unauthenticated", func(t *testing.T) {
+		statusCode, header, _ := ts.get(t, "/snippet/create")
+		assert.Equal(t, statusCode, http.StatusFound)
+		assert.Equal(t, header.Get("location"), "/user/login")
+	})
+
+}
+
+func extractToken(body string) string {
+	return ""
+}
