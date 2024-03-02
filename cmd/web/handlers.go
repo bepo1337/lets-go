@@ -203,6 +203,10 @@ func (app *Application) loginUserPost(w http.ResponseWriter, r *http.Request) {
 	}
 	app.sessionManager.Put(r.Context(), "toast", "Login successful")
 	app.sessionManager.Put(r.Context(), authenticatedUserId, id)
+	if redirectURLAfterLogin := app.sessionManager.PopString(r.Context(), "redirectURLAfterLogin"); redirectURLAfterLogin != "" {
+		http.Redirect(w, r, redirectURLAfterLogin, http.StatusSeeOther)
+		return
+	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
