@@ -3,7 +3,9 @@ package main
 import (
 	"github.com/justinas/nosurf"
 	"html/template"
+	"io/fs"
 	"letsgo.bepo1337/internal/models"
+	"letsgo.bepo1337/ui"
 	"net/http"
 	"path/filepath"
 	"time"
@@ -21,19 +23,18 @@ type TemplateData struct {
 
 func newTemplateCache() (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
-	pages, err := filepath.Glob(HTML_PATH + "pages/*.gohtml")
+	pages, err := fs.Glob(ui.Files, "html/pages/*.gohtml")
 	if err != nil {
 		return nil, err
 	}
 	for _, page := range pages {
 		name := filepath.Base(page)
-		templateSet, err := template.New(name).Funcs(functions).ParseFiles(HTML_PATH + "base.gohtml")
-		if err != nil {
-			return nil, err
+		patterns := []string{
+			"html/base.gohtml",
+			"html/partials/*.gohtml",
+			page,
 		}
-		templateSet, err = templateSet.ParseGlob(HTML_PATH + "partials/*.gohtml")
-
-		templateSet, err = templateSet.ParseFiles(page)
+		templateSet, err := template.New(name).Funcs(functions).ParseFS(ui.Files, patterns...)
 		if err != nil {
 			return nil, err
 		}
@@ -52,7 +53,10 @@ func (app *Application) newTemplateData(r *http.Request) *TemplateData {
 }
 
 func humanDate(t time.Time) string {
-	return t.Format("02 Jan 2006 at 15:04")
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format("02 Jan 2006 at 15:04")
 }
 
 var functions = template.FuncMap{

@@ -3,17 +3,19 @@ package main
 import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
+	"letsgo.bepo1337/ui"
 	"net/http"
 )
 
-func (app *Application) initializeRoutes(config *Config) http.Handler {
+func (app *Application) initializeRoutes() http.Handler {
 	router := httprouter.New()
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 	})
 
-	fileServer := http.FileServer(http.Dir(config.staticDir))
-	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static/", fileServer))
+	fileServer := http.FileServer(http.FS(ui.Files))
+	router.Handler(http.MethodGet, "/static/*filepath", fileServer)
+	router.HandlerFunc(http.MethodGet, "/ping", ping)
 
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
 	router.Handler(http.MethodGet, "/", dynamic.ThenFunc(app.home))

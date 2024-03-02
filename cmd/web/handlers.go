@@ -77,7 +77,7 @@ func (app *Application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		"title",
 		"Title cant be greater than 100 characters")
 	form.CheckField(validator.NotBlank(form.Content), "content", "Content cant be blank")
-	form.CheckField(validator.PermittedInt(form.Expires, 1, 7, 365),
+	form.CheckField(validator.PermittedValue(form.Expires, 1, 7, 365),
 		"expires",
 		"Expires not in permitted set")
 
@@ -215,5 +215,8 @@ func (app *Application) logoutUserPost(w http.ResponseWriter, r *http.Request) {
 	app.sessionManager.Remove(r.Context(), authenticatedUserId)
 	app.sessionManager.Put(r.Context(), "toast", "Logged out successfully")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
 
+func ping(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK"))
 }

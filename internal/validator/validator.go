@@ -38,7 +38,7 @@ func WithinMaxChars(value string, maxChars int) bool {
 	return true
 }
 
-func PermittedInt(value int, permitted ...int) bool {
+func PermittedValue[T comparable](value T, permitted ...T) bool {
 	for i := range permitted {
 		if value == permitted[i] {
 			return true

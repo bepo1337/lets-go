@@ -23,8 +23,8 @@ const (
 type Application struct {
 	errorLog       *log.Logger
 	infoLog        *log.Logger
-	snippetModel   *models.SnippetModel
-	userModel      *models.UserModel
+	snippetModel   models.SnippetModelInterface
+	userModel      models.UserModelInterface
 	templates      map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
@@ -78,7 +78,7 @@ func main() {
 	}
 	server := &http.Server{
 		Addr:         config.addr,
-		Handler:      app.initializeRoutes(config),
+		Handler:      app.initializeRoutes(),
 		ErrorLog:     errorLog,
 		TLSConfig:    tlsConfig,
 		IdleTimeout:  time.Minute,

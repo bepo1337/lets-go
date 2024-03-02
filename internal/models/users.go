@@ -21,6 +21,12 @@ type User struct {
 	created  time.Time
 }
 
+type UserModelInterface interface {
+	Insert(name, email, password string) error
+	Exists(id int) (bool, error)
+	Authenticate(email, password string) (int, error)
+}
+
 type UserModel struct {
 	DB *sql.DB
 }
