@@ -28,6 +28,7 @@ type Application struct {
 	templates      map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
+	debugMode      bool
 }
 
 type Config struct {
@@ -45,6 +46,7 @@ func setupConfig() *Config {
 func main() {
 	config := setupConfig()
 	dataSourceString := flag.String("dsn", "root:admin@/snippetbox?parseTime=true", "MySQL data source string")
+	debugMode := flag.Bool("debug", false, "Decides if server is started in debug mode")
 	flag.Parse()
 
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
@@ -71,6 +73,7 @@ func main() {
 		templates:      templates,
 		formDecoder:    form.NewDecoder(),
 		sessionManager: sessionManager,
+		debugMode:      *debugMode,
 	}
 
 	tlsConfig := &tls.Config{
