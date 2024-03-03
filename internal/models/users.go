@@ -104,11 +104,6 @@ func (u *UserModel) Get(id int) (*User, error) {
 
 func (u *UserModel) CorrectPassword(id int, password string) (bool, error) {
 	dbStatement := "SELECT hashed_pw  FROM users where id=?"
-	//dbStatement := "SELECT EXISTS(SELECT 1 FROM users where id=? and hashed_pw=?)"
-	//hashedPw, err := bcrypt.GenerateFromPassword([]byte(password), UserHashCost)
-	//if err != nil {
-	//	return false, err
-	//}
 	var hashedPassword string
 	err := u.DB.QueryRow(dbStatement, id).Scan(&hashedPassword)
 	if err != nil {
