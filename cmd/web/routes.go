@@ -31,6 +31,8 @@ func (app *Application) initializeRoutes() http.Handler {
 	router.Handler(http.MethodPost, "/snippet/create", protected.ThenFunc(app.snippetCreatePost))
 	router.Handler(http.MethodPost, "/user/logout", protected.ThenFunc(app.logoutUserPost))
 	router.Handler(http.MethodGet, "/account/view", protected.ThenFunc(app.viewAccount))
+	router.Handler(http.MethodGet, "/account/changePassword", protected.ThenFunc(app.changePasswordForm))
+	router.Handler(http.MethodPost, "/account/changePassword", protected.ThenFunc(app.changePasswordPost))
 
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest, secureHeader)
 	return standardMiddleware.Then(router)

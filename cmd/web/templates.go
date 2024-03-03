@@ -50,7 +50,6 @@ func (app *Application) newTemplateData(r *http.Request) *TemplateData {
 		CurrentYear:     time.Now().Year(),
 		Toast:           app.sessionManager.PopString(r.Context(), "toast"),
 		CSRFToken:       nosurf.Token(r),
-		//AccountData:     map[string]string{},
 	}
 }
 

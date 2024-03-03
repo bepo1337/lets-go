@@ -246,3 +246,66 @@ func (app *Application) viewAccount(w http.ResponseWriter, r *http.Request) {
 	templateData.User = userData
 	app.render(w, http.StatusOK, "account.gohtml", templateData)
 }
+
+func (app *Application) changePasswordForm(w http.ResponseWriter, r *http.Request) {
+	templateData := app.newTemplateData(r)
+	templateData.Form = &changePasswordForm{}
+	app.render(w, http.StatusOK, "changePassword.gohtml", templateData)
+}
+
+func (app *Application) changePasswordPost(w http.ResponseWriter, r *http.Request) {
+	//Decode
+	var form = &changePasswordForm{}
+	err := app.decodePostForm(r, form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+	//validate
+	form.Validator.CheckField(validator.NotBlank(form.CurrentPassword), "currentPassword", "Current Password cant be blank")
+	form.Validator.CheckField(validator.NotBlank(form.NewPassword), "newPassword", "new password cant be blank")
+	form.Validator.CheckField(validator.NotBlank(form.NewPasswordVerification), "newPasswordVerification", "New password verification cant be blank")
+	form.Validator.CheckField(validator.Match(form.NewPassword, form.NewPasswordVerification), "newPassword", "Passwords dont match")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, http.StatusUnprocessableEntity, "changePassword.gohtml", data)
+		return
+	}
+	userId := app.sessionManager.GetInt(r.Context(), authenticatedUserId)
+	//check if old pw is correct
+	_, err = app.userModel.CorrectPassword(userId, form.CurrentPassword)
+	if err != nil {
+		if errors.Is(err, models.ErrHashesDontMatch) {
+			data := app.newTemplateData(r)
+			form.AddFieldError("currentPassword", "Wrong password!")
+			data.Form = form
+			app.render(w, http.StatusUnprocessableEntity, "changePassword.gohtml", data)
+
+		} else {
+			app.serveError(w, err)
+		}
+		return
+	}
+	worked, err := app.userModel.UpdatePassword(userId, form.NewPassword)
+	if err != nil {
+		app.serveError(w, err)
+		return
+	}
+	if worked {
+		app.sessionManager.Put(r.Context(), "toast", "Update password successful")
+		http.Redirect(w, r, "/account/view", http.StatusSeeOther)
+		return
+	} else {
+		app.serveError(w, models.ErrNoUpdateFound)
+		return
+	}
+}
+
+type changePasswordForm struct {
+	CurrentPassword         string `form:"currentPassword"`
+	NewPassword             string `form:"newPassword"`
+	NewPasswordVerification string `form:"newPasswordVerification"`
+	validator.Validator     `form:"-"`
+}

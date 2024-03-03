@@ -38,6 +38,14 @@ func WithinMaxChars(value string, maxChars int) bool {
 	return true
 }
 
+func Match[T comparable](firstValue, secondValue T) bool {
+	if firstValue == secondValue {
+		return true
+	} else {
+		return false
+	}
+}
+
 func PermittedValue[T comparable](value T, permitted ...T) bool {
 	for i := range permitted {
 		if value == permitted[i] {

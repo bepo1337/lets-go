@@ -16,10 +16,6 @@ import (
 	"time"
 )
 
-const (
-	Cost = 10
-)
-
 type Application struct {
 	errorLog       *log.Logger
 	infoLog        *log.Logger

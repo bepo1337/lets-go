@@ -44,3 +44,11 @@ func (u *UserModel) Get(id int) (*models.User, error) {
 		return &models.User{}, models.ErrNoRecord
 	}
 }
+
+func (u *UserModel) CorrectPassword(id int, password string) (bool, error) {
+	return true, nil
+}
+
+func (u *UserModel) UpdatePassword(id int, newPassword string) (bool, error) {
+	return true, nil
+}
